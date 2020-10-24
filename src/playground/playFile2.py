@@ -1,0 +1,2 @@
+def myOtherFunction():
+    print('hohoho')
