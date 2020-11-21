@@ -7,6 +7,7 @@ from nuscenes.map_expansion import arcline_path_utils
 import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
+import loadInitialMovingState 
 
 #setup
 nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
@@ -28,8 +29,7 @@ def loadDatabase():
     db.ego_pose.insert_many(nusc.ego_pose)
     print('loaded ego_pose complete')
     #load sample_annotation
-    db.sample_annotation.insert_many(nusc.sample_annotation)
-    print('loaded sample_annotation complete')
+    loadSampleAnnotations()
     #load attribute
     db.attribute.insert_many(nusc.attribute)
     print('loaded attribute complete')
@@ -53,9 +53,12 @@ def loadDatabase():
     print('loaded sensor complete')
 
 def loadDatabasePart2():
-    #load map
     db.map.insert_many(nusc.map)
     print('loaded map complete')
 
+def loadSampleAnnotations():
+    sample_annotations_with_moving_states = loadInitialMovingState.induceMovingStateInSampleAnnotation()
+    db.sample_annotation.insert_many(sample_annotations_with_moving_states)
+    print('loaded sample_annotation complete')
+
 #loadDatabase()
-#loadDatabasePart2()

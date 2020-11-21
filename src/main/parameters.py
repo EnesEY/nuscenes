@@ -1,0 +1,1 @@
+moving_treshold = 0.03 # 3 centimeter die sekunde
