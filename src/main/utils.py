@@ -44,6 +44,18 @@ def getDirectionOfNearestLane(annotation):
 
     return direction
 
+def getDeltaXAndDeltaYOfNearestLane(annotation):
+    nearestLane = load000setup.getClosestLaneOfSampleAnnotation(annotation)
+    start_x = nearestLane[0]['start_pose'][0]
+    start_y = nearestLane[0]['start_pose'][1]
+    end_x = nearestLane[0]['end_pose'][0]
+    end_y = nearestLane[0]['end_pose'][1]
+
+    delta_x = (end_x - start_x)
+    delta_y = (end_y - start_y)
+
+    return [delta_x, delta_y]
+
 # get direction of two points
 def getOrthogonalDirectionOfNearestLane(annotation):
     direction = getDirectionOfNearestLane(annotation)
