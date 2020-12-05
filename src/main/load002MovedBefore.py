@@ -1,15 +1,5 @@
-from nuscenes.nuscenes import NuScenes
-from pymongo import MongoClient 
-from pprint import pprint
-from nuscenes.map_expansion.map_api import NuScenesMap
-from nuscenes.map_expansion import arcline_path_utils
-
-import matplotlib.pyplot as plt
-import tqdm
-import numpy as np
 import load000setup
 import load001InitialMovingState 
-import parameters
 
 # loads the attribute movedBefore into every sample_annotation
 def loadMovedBefore():

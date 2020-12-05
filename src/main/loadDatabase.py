@@ -53,12 +53,12 @@ def loadDatabase():
     print('loaded sensor complete')
 
 def loadDatabasePart2():
-    db.map.insert_many(nusc.map)
-    print('loaded map complete')
+  #  db.map.insert_many(nusc_map)
+    print(nusc_map.lane.)
 
 def loadSampleAnnotations():
-    sample_annotations_with_moving_states = load001InitialMovingState.induceMovingStateInSampleAnnotation()
-    db.sample_annotation.insert_many(sample_annotations_with_moving_states)
+  #  sample_annotations_with_moving_states = load001InitialMovingState.induceMovingStateInSampleAnnotation()
+  #  db.sample_annotation.insert_many(sample_annotations_with_moving_states)
     print('loaded sample_annotation complete')
 
-#loadDatabase()
+loadDatabasePart2()
