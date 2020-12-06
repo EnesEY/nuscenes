@@ -54,7 +54,7 @@ def loadDatabase():
 
 def loadDatabasePart2():
   #  db.map.insert_many(nusc_map)
-    print(nusc_map.lane.)
+    print(nusc_map.lane)
 
 def loadSampleAnnotations():
   #  sample_annotations_with_moving_states = load001InitialMovingState.induceMovingStateInSampleAnnotation()

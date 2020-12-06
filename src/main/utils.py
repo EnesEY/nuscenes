@@ -29,8 +29,7 @@ def interpolate(x_start, y_start, x_end, y_end, steps):
     return output
 
 # get direction of nearest lane (starting line to other end line direction)
-def getDirectionOfNearestLane(annotation):
-    nearestLane = load000setup.getClosestLaneOfSampleAnnotation(annotation)
+def getDirectionOfNearestLane(annotation , nearestLane):
     start_x = nearestLane[0]['start_pose'][0]
     start_y = nearestLane[0]['start_pose'][1]
     end_x = nearestLane[0]['end_pose'][0]
@@ -44,8 +43,7 @@ def getDirectionOfNearestLane(annotation):
 
     return direction
 
-def getDeltaXAndDeltaYOfNearestLane(annotation):
-    nearestLane = load000setup.getClosestLaneOfSampleAnnotation(annotation)
+def getDeltaXAndDeltaYOfNearestLane(annotation, nearestLane):
     start_x = nearestLane[0]['start_pose'][0]
     start_y = nearestLane[0]['start_pose'][1]
     end_x = nearestLane[0]['end_pose'][0]
@@ -57,8 +55,8 @@ def getDeltaXAndDeltaYOfNearestLane(annotation):
     return [delta_x, delta_y]
 
 # get direction of two points
-def getOrthogonalDirectionOfNearestLane(annotation):
-    direction = getDirectionOfNearestLane(annotation)
+def getOrthogonalDirectionOfNearestLane(annotation, nearestLane):
+    direction = getDirectionOfNearestLane(annotation, nearestLane)
     
     orthogonalDirection = (-1)*(direction)
 
