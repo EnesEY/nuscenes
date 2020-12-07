@@ -63,20 +63,30 @@ def loadDatabase():
 
 
 def loadSampleAnnotations():
+    #001
     load001InitialMovingState.induceMovingStateInSampleAnnotation()
-    load002MovedBefore.loadMovedBefore()
+    #002
+    load002MovedBefore.loadMovementAttributes()
+    #003
 
 
-    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_boston_seaport, 0)
-    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_hollandvillage, 1)
-    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_onenorth, 2)
-    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_queenstown, 3)
+    # load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_boston_seaport, 0)
+    # load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_hollandvillage, 1)
+    # load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_onenorth, 2)
 
 
-    db.sample_annotation.insert_many(nusc.sample_annotation)
+    # THIS IS SKIPPED BECAUSE ITS TAKING TOO LONG
+    # load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_queenstown, 3)
+
+
+    # db.sample_annotation.insert_many(load000setup.sample_annotations_boston_seaport)
+    # db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_hollandvillage)
+    # db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_onenorth)
+    # db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_queenstown)
+
     print('loaded sample_annotation complete')
 
 
 
 #loadDatabase()
-loadSampleAnnotations()
+loadDatabase()
