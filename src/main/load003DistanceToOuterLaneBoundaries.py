@@ -7,34 +7,34 @@ import os
 from threading import Thread
 from multiprocessing import Process
 
-processes = []
-annotations = load000setup.nusc.sample_annotation
-process_step = math.floor(len(annotations)/16)
 
 # loads the attribute movedBefore into every sample_annotation
-def loadDistanceToOuterLaneBoundaries():
+def loadDistanceToOuterLaneBoundaries(annotations, number):
     print('start adding distance to outer lane boundaries annotations     ')
 
-    # multithreading
-    # 16 Threads (8 cores)
+    processes = []
+
+    process_step = math.floor(len(annotations)/16)
 
     for t in range(0, os.cpu_count()-1):
-        print(os.cpu_count()-1)
-        processes.append(Process(target=execute_process, args=(t,)))
+        processes.append(Process(target=execute_process, args=(t,annotations, process_step,)))
 
     for process in processes:
         process.start()
     
     for process in processes:
         process.join()
+
+    for index in range(process_step * os.cpu_count()-1, len(annotations)):
+        extractPointsOfLaneDirection(annotations[index])
+
     print('finished adding distance to outer lane boundaries annotations     ')
 
 
-def execute_process(number_of_process):
+def execute_process(number_of_process, annotations, process_step):
     print(f'STARTED process Nr:{number_of_process}     ')
     for index in range(process_step * number_of_process, (process_step * number_of_process) + process_step):
         extractPointsOfLaneDirection(annotations[index])
-        print(f'{index}     ')
     print(f'ENDED process Nr:{number_of_process} from range {process_step * number_of_process} to {(process_step * number_of_process) + process_step}     ')
 
 
@@ -70,7 +70,6 @@ def extractPointsOfLaneDirection(annotation):
     steps = 50 
     x_center, y_center, z_center = annotation['translation']
 
-    # execute
     # get direction of x and y of the nearest lane
     [delta_x_lane, delta_y_lane] = utils.getDeltaXAndDeltaYOfNearestLane(annotation, nearestLane)
     [delta_orthogonal_lane_x , delta_orthogonal_lane_y] = [delta_y_lane, (-1)*delta_x_lane]
@@ -78,7 +77,6 @@ def extractPointsOfLaneDirection(annotation):
     [same_direction_nodes, opposite_direction_nodes] = getOppositeAndSameDirectionNodes(non_intersection_road_segments_nodes, delta_x_lane, delta_y_lane)
     
     # Get average point of both lanes
-    # get minimal point of the interpolated thing
     [average_x_same_direction, average_y_same_direction] = getAverageXAndYOfLane(same_direction_nodes)
     [average_x_opposite_direction, average_y_opposite_direction] = getAverageXAndYOfLane(opposite_direction_nodes)
 
@@ -89,8 +87,6 @@ def extractPointsOfLaneDirection(annotation):
     isRightBoundaryValid = True
     if average_x_same_direction == 0 or average_y_same_direction == 0:
         isRightBoundaryValid = False
-
-
 
     if isLeftBoundaryValid == True:
         start_point_left_lane = [x_center, y_center]
@@ -106,62 +102,8 @@ def extractPointsOfLaneDirection(annotation):
         closest_point_of_right_lane_to_same_average_point = getClosestPointOfLaneToPoint(lane_to_right_boundary, average_x_same_direction, average_y_same_direction)
         closest_point_of_right_lane_to_same_average_distance = calculateDistanceBetweenTwoNodes(closest_point_of_right_lane_to_same_average_point['x'],closest_point_of_right_lane_to_same_average_point['y'],x_center, y_center)
 
-    return [closest_point_of_left_lane_to_opposite_average_distance, closest_point_of_right_lane_to_same_average_distance]
-
-
-
-    # PLOT OPTION
-
-    # zoomOut = 10
-    # my_patch = ((x_center - zoomOut), (y_center - zoomOut), (x_center + zoomOut), (y_center + zoomOut))
-
-    # poses_x_same_direction = []
-    # poses_y_same_direction = []
-    # poses_lane_to_left_boundary_x = []
-    # poses_lane_to_left_boundary_y = []
-    # poses_x_opposite_direction = []
-    # poses_y_opposite_direction = []
-    # poses_lane_to_right_boundary_x = []
-    # poses_lane_to_right_boundary_y = []
-    # pose_average_x = []
-    # pose_average_y = []
-
-    # if isLeftBoundaryValid == True:
-    #     pose_average_x.append(average_x_same_direction)
-    #     pose_average_y.append(average_y_same_direction)
-    #     pose_average_x.append(closest_point_of_left_lane_to_opposite_average_point['x'])
-    #     pose_average_y.append(closest_point_of_left_lane_to_opposite_average_point['y'])
-
-    # if isRightBoundaryValid == True:
-    #     pose_average_x.append(average_x_opposite_direction)
-    #     pose_average_y.append(average_y_opposite_direction)
-    #     pose_average_x.append(closest_point_of_right_lane_to_same_average_point['x'])
-    #     pose_average_y.append(closest_point_of_right_lane_to_same_average_point['y'])
-
-    # for value in same_direction_nodes:
-    #     poses_x_same_direction.append(value['x'])
-    #     poses_y_same_direction.append(value['y'])
-    # for value in opposite_direction_nodes:
-    #     poses_x_opposite_direction.append(value['x'])
-    #     poses_y_opposite_direction.append(value['y'])
-    
-    # if isLeftBoundaryValid == True:
-    #     for value in lane_to_left_boundary:
-    #         poses_lane_to_left_boundary_x.append(value['x'])
-    #         poses_lane_to_left_boundary_y.append(value['y'])
-    # if isRightBoundaryValid == True:
-    #     for value in lane_to_right_boundary:
-    #         poses_lane_to_right_boundary_x.append(value['x'])
-    #         poses_lane_to_right_boundary_y.append(value['y'])
-
-    # fig, ax = nusc_map.render_map_patch(my_patch, nusc_map.non_geometric_layers, figsize=(10, 10))
-    # ax.scatter(x_center, y_center, s=20, c='#FF0000', alpha=1.0, zorder=2)
-    # ax.scatter(poses_x_same_direction, poses_y_same_direction, s=20, c='#00FF00', alpha=1.0, zorder=2)
-    # ax.scatter(poses_x_opposite_direction, poses_y_opposite_direction, s=20, c='#0000FF', alpha=1.0, zorder=2)
-    # ax.scatter(poses_lane_to_left_boundary_x, poses_lane_to_left_boundary_y, s=20, c='#FFFF00', alpha=1.0, zorder=2)
-    # ax.scatter(poses_lane_to_right_boundary_x, poses_lane_to_right_boundary_y, s=20, c='#00FFFF', alpha=1.0, zorder=2)
-    # ax.scatter(pose_average_x, pose_average_y, s=20, c='k', alpha=1.0, zorder=2)
-
+    annotation['distanceToLeftBoundary'] = closest_point_of_left_lane_to_opposite_average_distance
+    annotation['distanceToRightBoundary'] = closest_point_of_right_lane_to_same_average_distance
 
 
 def getNodesOfRoadSegments(road_segments, nusc_map):
@@ -220,4 +162,3 @@ def calculateDistanceBetweenTwoNodes(x1, y1, x2, y2):
 
 # annotation = load000setup.nusc.sample_annotation[100]
 # extractPointsOfLaneDirection(annotation)
-loadDistanceToOuterLaneBoundaries()

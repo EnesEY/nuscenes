@@ -7,13 +7,14 @@ from nuscenes.map_expansion import arcline_path_utils
 import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
+import load000setup
 import load001InitialMovingState 
+import load002MovedBefore
+import load003DistanceToOuterLaneBoundaries
 
-#setup
-nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
-client=MongoClient('mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test')
-nusc_map = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-onenorth')
-db = client.nuscenes
+
+nusc = load000setup.nusc
+db = load000setup.db
 
 def loadDatabase():
     #load scene
@@ -29,7 +30,15 @@ def loadDatabase():
     db.ego_pose.insert_many(nusc.ego_pose)
     print('loaded ego_pose complete')
     #load sample_annotation
+
+
+
+
     loadSampleAnnotations()
+
+
+
+
     #load attribute
     db.attribute.insert_many(nusc.attribute)
     print('loaded attribute complete')
@@ -52,13 +61,22 @@ def loadDatabase():
     db.sensor.insert_many(nusc.sensor)
     print('loaded sensor complete')
 
-def loadDatabasePart2():
-  #  db.map.insert_many(nusc_map)
-    print(nusc_map.lane)
 
 def loadSampleAnnotations():
-  #  sample_annotations_with_moving_states = load001InitialMovingState.induceMovingStateInSampleAnnotation()
-  #  db.sample_annotation.insert_many(sample_annotations_with_moving_states)
+    load001InitialMovingState.induceMovingStateInSampleAnnotation()
+    load002MovedBefore.loadMovedBefore()
+
+
+    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_boston_seaport, 0)
+    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_hollandvillage, 1)
+    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_onenorth, 2)
+    load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_queenstown, 3)
+
+
+    db.sample_annotation.insert_many(nusc.sample_annotation)
     print('loaded sample_annotation complete')
 
-loadDatabasePart2()
+
+
+#loadDatabase()
+loadSampleAnnotations()

@@ -7,12 +7,66 @@ from nuscenes.map_expansion import arcline_path_utils
 #setup
 nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
 client=MongoClient('mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test')
+
 nusc_map_singapore_onenorth = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-onenorth')
 nusc_map_singapore_hollandvillage = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-hollandvillage')
 nusc_map_singapore_queenstown = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-queenstown')
 nusc_map_boston_seaport = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='boston-seaport')
 
+def getMapNameOfSampleAnnotation(annotation):
+    sample_token = annotation['sample_token']
+    sample = nusc.get('sample', sample_token)
+    scene_token = sample['scene_token']
+    scene = nusc.get('scene', scene_token)
+    log_token = scene['log_token']
+    log = nusc.get('log', log_token)
+    map_name = log['location']
+    return map_name
+
+def load_sample_annotation_with_map_separation():
+    print('started loading map-seperated sample_annotation')
+    sample_annotations_singapore_onenorth = []
+    sample_annotations_singapore_hollandvillage = []
+    sample_annotations_singapore_queenstown = []
+    sample_annotations_boston_seaport = []
+    for sample in nusc.sample_annotation:
+        if 'map_name' in sample.keys():
+            if sample['map_name'] == 'singapore-onenorth':
+                sample_annotations_singapore_onenorth.append(sample)
+            if sample['map_name'] == 'singapore-hollandvillage':
+                sample_annotations_singapore_hollandvillage.append(sample)
+            if sample['map_name'] == 'singapore-queenstown':
+                sample_annotations_singapore_queenstown.append(sample)
+            if sample['map_name'] == 'boston-seaport':
+                sample_annotations_boston_seaport.append(sample)
+    print('finished loading map-seperated sample_annotation')
+    return [sample_annotations_singapore_onenorth, sample_annotations_singapore_hollandvillage, sample_annotations_singapore_queenstown, sample_annotations_boston_seaport]
+
+
+def load_map_annotations():
+    print('started loading map_name annotation')
+    for instance in nusc.instance:
+            first_annotation_token = instance['first_annotation_token']
+            first_annotation = nusc.get('sample_annotation', first_annotation_token)
+            last_annotation_token = instance['last_annotation_token']
+            next_annotation_token = first_annotation['next']
+
+            while next_annotation_token != last_annotation_token and next_annotation_token != '':
+                current_annotation = nusc.get('sample_annotation', next_annotation_token)
+                current_annotation['map_name'] = getMapNameOfSampleAnnotation(current_annotation)
+                next_annotation_token = current_annotation['next']
+    print('finished loading map_name annotation')
+
+load_map_annotations()
+sample_annotations_singapore_onenorth, sample_annotations_singapore_hollandvillage, sample_annotations_singapore_queenstown, sample_annotations_boston_seaport = load_sample_annotation_with_map_separation()
+
 db = client.nuscenes
+
+
+
+
+
+
 
 def getMap(name):
     if name == 'singapore-onenorth':
@@ -97,13 +151,6 @@ def getIsThisVehicleAndNotEgoVehicle(annotation):
             return True
     else:
         return False
-
-
-
-# for sample in nusc.sample_annotation:
-#     output = getMapLayerOfSampleAnnotatino(sample, 'road_segment')
-#     print(output)
-
 
 
 
