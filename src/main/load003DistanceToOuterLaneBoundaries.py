@@ -57,7 +57,8 @@ def extractPointsOfLaneDirection(annotation):
         return ''
 
     # wcheck if this annotation is for a vehicle that is not the ego vehicle
-    if load000setup.getIsThisVehicleAndNotEgoVehicle(annotation) == False:
+    annotation['isEgoVehicle'] = load000setup.getIsThisVehicleAndNotEgoVehicle(annotation)
+    if annotation['isEgoVehicle'] == False:
         return ''
 
     # check if it is on top of a road segment (this feature does not work if this is not the case)
@@ -66,6 +67,7 @@ def extractPointsOfLaneDirection(annotation):
         return ''
 
     # can't calculate the distance in intersections
+    annotation['onIntersection'] = road_segment['is_intersection']
     if road_segment['is_intersection'] == True:
         return ''
 
@@ -110,6 +112,8 @@ def extractPointsOfLaneDirection(annotation):
 
     annotation['distanceToLeftBoundary'] = closest_point_of_left_lane_to_opposite_average_distance
     annotation['distanceToRightBoundary'] = closest_point_of_right_lane_to_same_average_distance
+
+    load000setup.db.sample_annotation.insert_one(annotation)
 
 
 def getNodesOfRoadSegments(road_segments, nusc_map):

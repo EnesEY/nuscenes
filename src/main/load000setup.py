@@ -60,7 +60,7 @@ def load_map_annotations():
 load_map_annotations()
 sample_annotations_singapore_onenorth, sample_annotations_singapore_hollandvillage, sample_annotations_singapore_queenstown, sample_annotations_boston_seaport = load_sample_annotation_with_map_separation()
 
-db = client.nuscenes
+db = client.nuscenes_sample_annotations
 
 
 

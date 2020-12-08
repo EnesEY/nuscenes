@@ -13,45 +13,49 @@ import load002MovedBefore
 import load003DistanceToOuterLaneBoundaries
 
 
-nusc = load000setup.nusc
-db = load000setup.db
-
 def loadDatabase():
-    #load scene
-    db.scene.insert_many(nusc.scene)
-    print('loaded scene complete')
-    #load sample
-    db.sample.insert_many(nusc.sample)
-    print('loaded sample complete')
-    #load sample_data
-    db.sample_data.insert_many(nusc.sample_data)
-    print('loaded sample_data complete')
-    #load ego_pose
-    db.ego_pose.insert_many(nusc.ego_pose)
-    print('loaded ego_pose complete')
-    #load sample_annotation
+    # #load scene
+    # db.scene.insert_many(nusc.scene)
+    # print('loaded scene complete')
+    # #load sample
+    # db.sample.insert_many(nusc.sample)
+    # print('loaded sample complete')
+    # #load sample_data
+    # db.sample_data.insert_many(nusc.sample_data)
+    # print('loaded sample_data complete')
+    # #load ego_pose
+    # db.ego_pose.insert_many(nusc.ego_pose)
+    # print('loaded ego_pose complete')
+    # #load sample_annotation
+
+
+
+
     loadSampleAnnotations()
-    #load attribute
-    db.attribute.insert_many(nusc.attribute)
-    print('loaded attribute complete')
-    #load visibility
-    db.visibility.insert_many(nusc.visibility)
-    print('loaded visibility complete')
-    #load instance
-    db.instance.insert_many(nusc.instance)
-    print('loaded instance complete')
-    #load category
-    db.category.insert_many(nusc.category)
-    print('loaded category complete')
-    #load log
-    db.log.insert_many(nusc.log)
-    print('loaded log complete')
-    #load calibrated_sensor
-    db.calibrated_sensor.insert_many(nusc.calibrated_sensor)
-    print('loaded calibrated_sensor complete')
-    #load sensor
-    db.sensor.insert_many(nusc.sensor)
-    print('loaded sensor complete')
+
+
+
+    # #load attribute
+    # db.attribute.insert_many(nusc.attribute)
+    # print('loaded attribute complete')
+    # #load visibility
+    # db.visibility.insert_many(nusc.visibility)
+    # print('loaded visibility complete')
+    # #load instance
+    # db.instance.insert_many(nusc.instance)
+    # print('loaded instance complete')
+    # #load category
+    # db.category.insert_many(nusc.category)
+    # print('loaded category complete')
+    # #load log
+    # db.log.insert_many(nusc.log)
+    # print('loaded log complete')
+    # #load calibrated_sensor
+    # db.calibrated_sensor.insert_many(nusc.calibrated_sensor)
+    # print('loaded calibrated_sensor complete')
+    # #load sensor
+    # db.sensor.insert_many(nusc.sensor)
+    # print('loaded sensor complete')
 
 
 def loadSampleAnnotations():
@@ -66,10 +70,10 @@ def loadSampleAnnotations():
     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_onenorth, 2)
     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_queenstown, 3)
 
-    db.sample_annotation.insert_many(load000setup.sample_annotations_boston_seaport)
-    db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_hollandvillage)
-    db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_onenorth)
-    db.sample_annotation.insert_many(load000setup.sample_annotations_singapore_queenstown)
+    # load000setup.db.boston_seaport.insert_many(load000setup.sample_annotations_boston_seaport)
+    # load000setup.db.singapore_hollandvillage.insert_many(load000setup.sample_annotations_singapore_hollandvillage)
+    # load000setup.db.singapore_onenorth.insert_many(load000setup.sample_annotations_singapore_onenorth)
+    # load000setup.db.singapore_queenstown.insert_many(load000setup.sample_annotations_singapore_queenstown)
     print('ended loading sample_annotation')
 
 
