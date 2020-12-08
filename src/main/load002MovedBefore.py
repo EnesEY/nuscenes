@@ -28,7 +28,6 @@ def loadMovementAttributes():
             current_annotation['movedBefore'] = movedBefore
             timeNotMoved = updateTimeNotMoved(timeNotMoved, current_annotation)
             current_annotation['timeNotMoved'] = timeNotMoved
-            print(current_annotation['timeNotMoved'])
             next_annotation_token = current_annotation['next']
     print('finished loading moved before annotation')
 

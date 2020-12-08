@@ -47,6 +47,12 @@ def extractPointsOfLaneDirection(annotation):
         print('this annotatino has been empty')
 
     nusc_map = load000setup.getMapOfSampleAnnotation(annotation)
+
+    # remove unnecessary layers for performance improvement
+    nusc_map.non_geometric_polygon_layers = ['drivable_area', 'road_segment', 'lane']
+    nusc_map.non_geometric_line_layers = []
+    nusc_map.non_geometric_layers = ['drivable_area', 'road_segment', 'lane']
+
     if nusc_map == '':
         return ''
 
@@ -162,3 +168,8 @@ def calculateDistanceBetweenTwoNodes(x1, y1, x2, y2):
 
 # annotation = load000setup.nusc.sample_annotation[100]
 # extractPointsOfLaneDirection(annotation)
+
+# annotation = []
+# annotation.append(load000setup.nusc.sample_annotation[100])
+# annotation.append(load000setup.nusc.sample_annotation[101])
+# loadDistanceToOuterLaneBoundaries(annotation, 0)
