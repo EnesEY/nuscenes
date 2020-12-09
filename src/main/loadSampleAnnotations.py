@@ -48,7 +48,6 @@ class LoadSampleAnnotation:
         for process in self.processes:
             process.join()
 
-        self._run_in_progress_method()
         # self.plotting_example()
 
         print('finished loading annotaions')
@@ -68,23 +67,14 @@ class LoadSampleAnnotation:
         # self._load_in_database(start_index, end_index)
 
 
+    # instance annotations
     def _load_instance_annotations(self, start_index, end_index, thread_number):
         for index in range(start_index, end_index):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
             self._load_moving_state(sample_annotations)
             self._load_moved_before(sample_annotations)
             self._load_time_not_moved(sample_annotations)
-
-
-    def _load_map_annotations(self, start_index, end_index, thread_number):
-        for index in tqdm(range(start_index, end_index), desc=f'map annotation progress of thread nr. {thread_number}:'):
-            sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
-            nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
-            nusc_map = self._get_map_of_annotation(nusc_map_name)
-            for i in range(0, len(sample_annotations) - 1):
-                road_segment = utils.get_road_segment_of_annotation(sample_annotations[i], nusc_map)
-                self._load_on_intersection(sample_annotations[i], road_segment)
-                self._load_distance_to_boundaries(sample_annotations[i], nusc_map, road_segment, 50)
+            self._load_vehicle_volume(sample_annotations)
 
 
     def _load_moving_state(self, sample_annotations):
@@ -112,6 +102,24 @@ class LoadSampleAnnotation:
             if sample_annotations[i]['movingState'] == False:
                 timeNotMoved += 1
             sample_annotations[i]['timeNotMoved'] = timeNotMoved
+
+    def _load_vehicle_volume(self, sample_annotations):
+        x,y,z = sample_annotations[0]['size']
+        vehicle_volume = x * y * z
+        for i in range(0, len(sample_annotations) - 1):
+            sample_annotations[i]['vehicleVolume'] = vehicle_volume
+
+
+    # map annotations
+    def _load_map_annotations(self, start_index, end_index, thread_number):
+        for index in tqdm(range(start_index, end_index), desc=f'map annotation progress of thread nr. {thread_number}:'):
+            sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
+            nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
+            nusc_map = self._get_map_of_annotation(nusc_map_name)
+            for i in range(0, len(sample_annotations) - 1):
+                road_segment = utils.get_road_segment_of_annotation(sample_annotations[i], nusc_map)
+                self._load_on_intersection(sample_annotations[i], road_segment)
+                self._load_distance_to_boundaries(sample_annotations[i], nusc_map, road_segment, 50)
 
 
     def _load_on_intersection(self, annotation, road_segment):
@@ -176,12 +184,14 @@ class LoadSampleAnnotation:
         annotation['distanceToRightBoundary'] = distance_to_right_boundary
 
 
+    # database loading
     def _load_in_database(self, startIndex, endIndex):
         for index in range(startIndex, endIndex):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
             self.db.sample_annotations.insert_many(sample_annotations)
 
 
+    # helper methods
     def _get_map_of_annotation(self, map_name):
         if map_name == 'singapore-onenorth':
             return self.nusc_map_singapore_onenorth
@@ -193,20 +203,15 @@ class LoadSampleAnnotation:
             return self.nusc_map_boston_seaport
 
 
+    # def plotting_example(self):
+    #     node_array = []
+    #     x_center = 0
+    #     y_center = 0
+    #     for i in range(0 , 10):
+    #         x_center = self.nusc_map_boston_seaport.node[i]['x']
+    #         y_center = self.nusc_map_boston_seaport.node[i]['y']
+    #         node_array.append(self.nusc_map_boston_seaport.node[i])
 
-    def _run_in_progress_method(self):
-        print('test')
-
-
-    def plotting_example(self):
-        node_array = []
-        x_center = 0
-        y_center = 0
-        for i in range(0 , 10):
-            x_center = self.nusc_map_boston_seaport.node[i]['x']
-            y_center = self.nusc_map_boston_seaport.node[i]['y']
-            node_array.append(self.nusc_map_boston_seaport.node[i])
-
-        visualize.visualize_node_array(self.nusc_map_boston_seaport, node_array, x_center, y_center, 30)
+    #     visualize.visualize_node_array(self.nusc_map_boston_seaport, node_array, x_center, y_center, 30)
 
 myInstance = LoadSampleAnnotation()
