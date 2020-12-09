@@ -7,12 +7,6 @@ from nuscenes.map_expansion import arcline_path_utils
 import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
-# import load000setup
-# import load001InitialMovingState 
-# import load002MovedBefore
-# import load003DistanceToOuterLaneBoundaries
-# import loadSampleAnnotations
-
 
 # def loadDatabase():
     # #load scene
@@ -28,12 +22,7 @@ import numpy as np
     # db.ego_pose.insert_many(nusc.ego_pose)
     # print('loaded ego_pose complete')
     # #load sample_annotation
-
-
     # loadSampleAnnotations()
-
-
-
     # #load attribute
     # db.attribute.insert_many(nusc.attribute)
     # print('loaded attribute complete')
@@ -56,25 +45,3 @@ import numpy as np
     # db.sensor.insert_many(nusc.sensor)
     # print('loaded sensor complete')
 
-
-# def loadSampleAnnotations():
-#     print('started loading sample_annotation')
-#     #001
-#     load001InitialMovingState.induceMovingStateInSampleAnnotation()
-#     #002
-#     load002MovedBefore.loadMovementAttributes()
-#     #003
-#     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_boston_seaport, 0)
-#     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_hollandvillage, 1)
-#     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_onenorth, 2)
-#     load003DistanceToOuterLaneBoundaries.loadDistanceToOuterLaneBoundaries(load000setup.sample_annotations_singapore_queenstown, 3)
-
-#     # load000setup.db.boston_seaport.insert_many(load000setup.sample_annotations_boston_seaport)
-#     # load000setup.db.singapore_hollandvillage.insert_many(load000setup.sample_annotations_singapore_hollandvillage)
-#     # load000setup.db.singapore_onenorth.insert_many(load000setup.sample_annotations_singapore_onenorth)
-#     # load000setup.db.singapore_queenstown.insert_many(load000setup.sample_annotations_singapore_queenstown)
-#     print('ended loading sample_annotation')
-
-
-
-#loadSampleAnnotations()

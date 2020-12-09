@@ -11,6 +11,7 @@ import numpy as np
 import math
 import sample_annotation_parameters as parameters
 import sample_annotation_utils as utils
+import visualize
 
 """
 All methods start from instance basis and load sample_annotations from there
@@ -29,6 +30,9 @@ class LoadSampleAnnotation:
 
         self._filter_unnecessary_instances()
 
+        # only used for testing and looking into data
+        self.visualize_number = 1
+
         print('started loading annotaions')
         self.processes = []
         self.process_ranges = utils.split_processes(self.nusc.instance)
@@ -43,6 +47,10 @@ class LoadSampleAnnotation:
         
         for process in self.processes:
             process.join()
+
+        self._run_in_progress_method()
+        # self.plotting_example()
+
         print('finished loading annotaions')
 
 
@@ -56,8 +64,8 @@ class LoadSampleAnnotation:
 
     def _load_annotations(self, start_index, end_index, thread_number):
         self._load_instance_annotations(start_index, end_index, thread_number)
-        self._load_map_annotations(start_index, end_index, thread_number)
-        self._load_in_database(start_index, end_index)
+        # self._load_map_annotations(start_index, end_index, thread_number)
+        # self._load_in_database(start_index, end_index)
 
 
     def _load_instance_annotations(self, start_index, end_index, thread_number):
@@ -164,7 +172,6 @@ class LoadSampleAnnotation:
                 lane_to_right_boundary = utils.interpolate(start_point_right_lane[0], start_point_right_lane[1], end_point_right_lane[0], end_point_right_lane[1], sampling_rate)
                 closest_point_of_right_lane_to_same_average_point = utils.get_nearest_node_of_node_array_to_point(lane_to_right_boundary, average_x_same_direction, average_y_same_direction)
                 distance_to_right_boundary = utils.get_distance_between_two_points(closest_point_of_right_lane_to_same_average_point['x'],closest_point_of_right_lane_to_same_average_point['y'],x_center, y_center)
-
         annotation['distanceToLeftBoundary'] = distance_to_left_boundary
         annotation['distanceToRightBoundary'] = distance_to_right_boundary
 
@@ -185,5 +192,21 @@ class LoadSampleAnnotation:
         if map_name == 'boston-seaport':
             return self.nusc_map_boston_seaport
 
+
+
+    def _run_in_progress_method(self):
+        print('test')
+
+
+    def plotting_example(self):
+        node_array = []
+        x_center = 0
+        y_center = 0
+        for i in range(0 , 10):
+            x_center = self.nusc_map_boston_seaport.node[i]['x']
+            y_center = self.nusc_map_boston_seaport.node[i]['y']
+            node_array.append(self.nusc_map_boston_seaport.node[i])
+
+        visualize.visualize_node_array(self.nusc_map_boston_seaport, node_array, x_center, y_center, 30)
 
 myInstance = LoadSampleAnnotation()
