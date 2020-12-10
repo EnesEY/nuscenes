@@ -114,8 +114,8 @@ class LoadImplementer:
                 road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map)
                 self._load_on_intersection(annotation, road_segment)
                 # self._load_distance_to_boundaries(sample_annotations[i], nusc_map, road_segment, 50)
-                self._load_distance_to_next_stop_point(annotation, nusc_map)
-
+                # self._load_distance_to_next_stop_point(annotation, nusc_map)
+                self._load_has_instance_in_front(annotation,nusc_map )
 
     def _load_on_intersection(self, annotation, road_segment):
         onIntersection = ''
@@ -179,53 +179,143 @@ class LoadImplementer:
         annotation['distanceToRightBoundary'] = distance_to_right_boundary
 
 
-    def _load_distance_to_next_stop_point(self, annotation, nusc_map):
-        sample_token = self.nusc.sample[100]['token']
+    # def _load_distance_to_next_stop_point(self, annotation, nusc_map):
+    #     sample_token = self.nusc.sample[100]['token']
 
-        print('only plotting static vehicles')
+    #     print('only plotting static vehicles')
+
+    #     my_sample_annotaions = []
+    #     my_vehicle_sample_annotations = []
+    #     my_pose_x = []
+    #     my_pose_y = []
+    #     for my_annotation in self.nusc.sample_annotation:
+    #         if my_annotation['sample_token'] == sample_token:
+    #             # insert movingState
+    #             velocities = list(self.nusc.box_velocity(my_annotation['token']))
+    #             moving = False
+    #             if abs(np.average(velocities)) > parameters.moving_treshold:
+    #                 moving = True
+    #             my_annotation['movingState'] = moving
+
+    #             # insert only not moving vehicles into plot
+    #             if my_annotation['movingState'] == False:
+    #                 my_sample_annotaions.append(my_annotation)
+    #                 category_name = my_annotation['category_name']
+    #                 category_name = category_name.split(".") 
+    #                 x = my_annotation['translation'][0]
+    #                 y = my_annotation['translation'][1]
+    #                 if category_name[0] == 'vehicle':
+    #                     my_pose_x.append(x)
+    #                     my_pose_y.append(y)
+    #                     my_vehicle_sample_annotations.append(my_annotation)
+
+
+    #     annotation = my_sample_annotaions[4]
+    #     x_center = annotation['translation'][0]
+    #     y_center = annotation['translation'][1]
+    #     zoom_out = 50
+    #     my_patch = ((x_center - zoom_out), (y_center - zoom_out), (x_center + zoom_out), (y_center + zoom_out))
+    #     map_name = utils.get_map_name_of_annotation(annotation, self.nusc)
+    #     nusc_map =self._get_map_of_annotation(map_name)
+
+    #     fig, ax = nusc_map.render_map_patch(my_patch, nusc_map.non_geometric_layers, figsize=(10, 10))
+    #     ax.scatter(my_pose_x, my_pose_y, s=20, c='k', alpha=1.0, zorder=2)
+    #     records_within_patch = nusc_map.get_records_in_patch(my_patch, nusc_map.non_geometric_layers, mode='within')
+
+
+    def _load_has_instance_in_front(self, annotation, nusc_map):
+        sampling_rate = 10
 
         my_sample_annotaions = []
+        my_instance_pose_x = []
+        my_instance_pose_y = []
+
         my_vehicle_sample_annotations = []
-        my_pose_x = []
-        my_pose_y = []
+        my_vehicle_pose_x = []
+        my_vehicle_pose_y = []
+
+        my_vehicle_lanes = []
+        my_lane_pose_x = []
+        my_lane_pose_y = []
+
+        vehicles_with_instances_in_front = []
+        my_in_front_pose_x = []
+        my_in_front_pose_y = []
+
+        # load instances of this sample 
+        sample_token = self.nusc.sample[100]['token']
         for my_annotation in self.nusc.sample_annotation:
             if my_annotation['sample_token'] == sample_token:
-                # insert movingState
-                velocities = list(self.nusc.box_velocity(my_annotation['token']))
-                moving = False
-                if abs(np.average(velocities)) > parameters.moving_treshold:
-                    moving = True
-                my_annotation['movingState'] = moving
+                my_sample_annotaions.append(my_annotation)
+                my_instance_pose_x.append(my_annotation['translation'][0])
+                my_instance_pose_y.append(my_annotation['translation'][1])
 
-                # insert only not moving vehicles into plot
-                if my_annotation['movingState'] == False:
-                    my_sample_annotaions.append(my_annotation)
-                    category_name = my_annotation['category_name']
-                    category_name = category_name.split(".") 
-                    x = my_annotation['translation'][0]
-                    y = my_annotation['translation'][1]
-                    if category_name[0] == 'vehicle':
-                        my_pose_x.append(x)
-                        my_pose_y.append(y)
-                        my_vehicle_sample_annotations.append(my_annotation)
+                category_name = my_annotation['category_name']
+                category_name = category_name.split(".") 
+                if category_name[0] == 'vehicle':
+                    my_vehicle_sample_annotations.append(my_annotation)
+                    my_vehicle_pose_x.append(my_annotation['translation'][0])
+                    my_vehicle_pose_y.append(my_annotation['translation'][1])
 
-
+        # load a specific annotation to get the map of this sample
         annotation = my_sample_annotaions[4]
+        map_name = utils.get_map_name_of_annotation(annotation, self.nusc)
+        nusc_map =self._get_map_of_annotation(map_name)
+
+        # get direction of x and y of the nearest lane
+        for vehicle in my_vehicle_sample_annotations:
+            nearestLane = utils.get_closest_lane_of_annotaion(vehicle, nusc_map)
+            print(nearestLane)
+            if nearestLane == '':
+                continue
+
+            [delta_x_lane, delta_y_lane] = utils.get_delta_x_and_delta_y_of_lane(vehicle, nearestLane)
+
+            start_x = vehicle['translation'][0]
+            start_y = vehicle['translation'][1]
+            end_x = (start_x + delta_x_lane) 
+            end_y = (start_y + delta_y_lane)
+
+            distance = utils.get_distance_between_two_points(start_x, start_y, end_x, end_y)
+
+            end_x = start_x + ((delta_x_lane/distance) * 10)
+            end_y = start_y + ((delta_y_lane/distance) * 10)
+
+
+            current_lane = utils.interpolate(start_x, start_y, end_x, end_y, sampling_rate)
+            for node in current_lane:
+                my_lane_pose_x.append(node['x'])
+                my_lane_pose_y.append(node['y'])
+            my_vehicle_lanes.append(current_lane)
+        
+            for instance in my_sample_annotaions:
+                current_x = instance['translation'][0]
+                current_y = instance['translation'][1]
+
+                for node in current_lane:
+                    node_x = node['x']
+                    node_y = node['y']
+                    distance2 = utils.get_distance_between_two_points(node_x, node_y, current_x, current_y)
+                    if abs(distance2) < 2 and instance['token'] != vehicle['token']:
+                        vehicle['hasInstanceInFront'] = True
+                        vehicles_with_instances_in_front.append(vehicle)
+                        my_in_front_pose_x.append(start_x)
+                        my_in_front_pose_y.append(start_y)
+
         x_center = annotation['translation'][0]
         y_center = annotation['translation'][1]
         zoom_out = 50
         my_patch = ((x_center - zoom_out), (y_center - zoom_out), (x_center + zoom_out), (y_center + zoom_out))
-        map_name = utils.get_map_name_of_annotation(annotation, self.nusc)
-        nusc_map =self._get_map_of_annotation(map_name)
-
         fig, ax = nusc_map.render_map_patch(my_patch, nusc_map.non_geometric_layers, figsize=(10, 10))
-        ax.scatter(my_pose_x, my_pose_y, s=20, c='k', alpha=1.0, zorder=2)
-        records_within_patch = nusc_map.get_records_in_patch(my_patch, nusc_map.non_geometric_layers, mode='within')
+
+        ax.scatter(my_instance_pose_x, my_instance_pose_y, s=20, c='#FF0000', alpha=1.0, zorder=2)
+        ax.scatter(my_lane_pose_x, my_lane_pose_y, s=20, c='#0000FF', alpha=1.0, zorder=2)
+        ax.scatter(my_vehicle_pose_x, my_vehicle_pose_y, s=20, c='#00FF00', alpha=1.0, zorder=2)
+        ax.scatter(x_center, y_center, s=20, c='#FFFF00', alpha=1.0, zorder=2)
+        ax.scatter(my_in_front_pose_x, my_in_front_pose_y, s=20, c='#FFFF00', alpha=1.0, zorder=2)
 
 
 
-        # get all instances in a scene and plot them on the map they are in...
-        # (for the same sample?... i wonder if a sample has all the instances they are in...)
 
 
     # database loading
