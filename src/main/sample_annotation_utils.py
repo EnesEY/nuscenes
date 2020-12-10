@@ -104,6 +104,7 @@ def get_delta_x_and_delta_y_of_lane(annotation, lane):
 
     return [delta_x, delta_y]
 
+
 def get_nodes_of_road_segment(road_segment, nusc_map):
     output = []
     for nodes_token in road_segment['exterior_node_tokens']:

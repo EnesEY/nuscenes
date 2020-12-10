@@ -13,10 +13,7 @@ import sample_annotation_parameters as parameters
 import sample_annotation_utils as utils
 import visualize
 
-"""
-All methods start from instance basis and load sample_annotations from there
-"""
-class LoadSampleAnnotation:
+class LoadImplementer:
 
     def __init__(self):
         self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
@@ -31,23 +28,15 @@ class LoadSampleAnnotation:
         self._filter_unnecessary_instances()
 
         print('started loading annotaions')
+
         self.processes = []
         self.process_ranges = utils.split_processes(self.nusc.instance)
 
         thread_number = 0
-        for start_and_end in self.process_ranges:
-            self.processes.append(Process(target=self._load_annotations, args=(start_and_end[0], start_and_end[1], thread_number,)))
-            thread_number += 1 
-
-        for process in self.processes:
-            process.start()
-        
-        for process in self.processes:
-            process.join()
-
-        # self.plotting_example()
+        self._load_annotations(0, 1, thread_number)
 
         print('finished loading annotaions')
+
 
 
     # Filtering
@@ -59,16 +48,19 @@ class LoadSampleAnnotation:
         self.nusc.instance = instances
 
 
-    # instance annotations
+
+    # Load Annotations
     def _load_annotations(self, start_index, end_index, thread_number):
         self._load_instance_annotations(start_index, end_index, thread_number)
         self._load_map_annotations(start_index, end_index, thread_number)
-        # self._load_in_database(start_index, end_index)
 
 
+
+    # instance annotations
     def _load_instance_annotations(self, start_index, end_index, thread_number):
         for index in range(start_index, end_index):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
+            sample_annotations = [sample_annotations[0]]
             self._load_moving_state(sample_annotations)
             self._load_moved_before(sample_annotations)
             self._load_time_not_moved(sample_annotations)
@@ -86,6 +78,7 @@ class LoadSampleAnnotation:
 
     def _load_moved_before(self, sample_annotations):
         movedBefore = False
+        print(len(sample_annotations))
         for annotation in sample_annotations:
             if movedBefore == False and annotation['movingState'] == True:
                 movedBefore = True
@@ -109,16 +102,18 @@ class LoadSampleAnnotation:
             annotation['vehicleVolume'] = vehicle_volume
 
 
+
     # map annotations
     def _load_map_annotations(self, start_index, end_index, thread_number):
         for index in tqdm(range(start_index, end_index), desc=f'map annotation progress of thread nr. {thread_number}:'):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
+            sample_annotations = [sample_annotations[0]]
             nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
             nusc_map = self._get_map_of_annotation(nusc_map_name)
             for annotation in sample_annotations:
                 road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map)
                 self._load_on_intersection(annotation, road_segment)
-                self._load_distance_to_boundaries(annotation, nusc_map, road_segment, 50)
+                # self._load_distance_to_boundaries(sample_annotations[i], nusc_map, road_segment, 50)
                 self._load_distance_to_next_stop_point(annotation, nusc_map)
 
 
@@ -185,19 +180,52 @@ class LoadSampleAnnotation:
 
 
     def _load_distance_to_next_stop_point(self, annotation, nusc_map):
-        my_patch = (300, 1000, 500, 1200)
-        nusc_map = self.nusc_map_singapore_onenorth
+        sample_token = self.nusc.sample[100]['token']
+
+        print('only plotting static vehicles')
+
+        my_sample_annotaions = []
+        my_vehicle_sample_annotations = []
+        my_pose_x = []
+        my_pose_y = []
+        for my_annotation in self.nusc.sample_annotation:
+            if my_annotation['sample_token'] == sample_token:
+                # insert movingState
+                velocities = list(self.nusc.box_velocity(my_annotation['token']))
+                moving = False
+                if abs(np.average(velocities)) > parameters.moving_treshold:
+                    moving = True
+                my_annotation['movingState'] = moving
+
+                # insert only not moving vehicles into plot
+                if my_annotation['movingState'] == False:
+                    my_sample_annotaions.append(my_annotation)
+                    category_name = my_annotation['category_name']
+                    category_name = category_name.split(".") 
+                    x = my_annotation['translation'][0]
+                    y = my_annotation['translation'][1]
+                    if category_name[0] == 'vehicle':
+                        my_pose_x.append(x)
+                        my_pose_y.append(y)
+                        my_vehicle_sample_annotations.append(my_annotation)
+
+
+        annotation = my_sample_annotaions[4]
+        x_center = annotation['translation'][0]
+        y_center = annotation['translation'][1]
+        zoom_out = 50
+        my_patch = ((x_center - zoom_out), (y_center - zoom_out), (x_center + zoom_out), (y_center + zoom_out))
+        map_name = utils.get_map_name_of_annotation(annotation, self.nusc)
+        nusc_map =self._get_map_of_annotation(map_name)
+
         fig, ax = nusc_map.render_map_patch(my_patch, nusc_map.non_geometric_layers, figsize=(10, 10))
+        ax.scatter(my_pose_x, my_pose_y, s=20, c='k', alpha=1.0, zorder=2)
         records_within_patch = nusc_map.get_records_in_patch(my_patch, nusc_map.non_geometric_layers, mode='within')
 
 
-        # get a field with a certain size and look if there are stop points near
 
-        # if there is a stop point near, calculate the center of it
-
-        # get the distance from out sample to that center point
-
-        # -> that is our attribute
+        # get all instances in a scene and plot them on the map they are in...
+        # (for the same sample?... i wonder if a sample has all the instances they are in...)
 
 
     # database loading
@@ -205,6 +233,7 @@ class LoadSampleAnnotation:
         for index in range(startIndex, endIndex):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
             self.db.sample_annotations.insert_many(sample_annotations)
+
 
 
     # helper methods
@@ -219,18 +248,5 @@ class LoadSampleAnnotation:
             return self.nusc_map_boston_seaport
 
 
-    # def plotting_example(self):
-    #     node_array = []
-    #     x_center = 0
-    #     y_center = 0
-    #     for i in range(0 , 10):
-    #         x_center = self.nusc_map_boston_seaport.node[i]['x']
-    #         y_center = self.nusc_map_boston_seaport.node[i]['y']
-    #         node_array.append(self.nusc_map_boston_seaport.node[i])
 
-    #     visualize.visualize_node_array(self.nusc_map_boston_seaport, node_array, x_center, y_center, 30)
-
-
-
-myInstance = LoadSampleAnnotation()
-
+myInstance = LoadImplementer()
