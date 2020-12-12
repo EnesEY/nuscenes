@@ -13,7 +13,9 @@ import sample_annotation_parameters as parameters
 import sample_annotation_utils as utils
 import visualize
 
-
+"""
+All methods start from sample basis and load sample_annotations from there
+"""
 class LoadSampleAnnotationsFromSamples:
 
     def __init__(self):
