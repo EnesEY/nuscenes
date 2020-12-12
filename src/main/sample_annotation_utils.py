@@ -149,6 +149,7 @@ def interpolate(x_start, y_start, x_end, y_end, steps):
 
     return output
 
+
 def get_nearest_node_of_node_array_to_point(node_array, x_of_point, y_of_point):
     max = 999999
     for point in node_array:
@@ -160,9 +161,29 @@ def get_nearest_node_of_node_array_to_point(node_array, x_of_point, y_of_point):
             closest_point = point
     return closest_point
 
+
 def get_distance_between_two_points(x1, y1, x2, y2):
     delta_x = x2 - x1
     delta_y = y2 - y1
 
     distance = math.sqrt(pow(delta_x, 2) + pow(delta_y, 2))
     return distance
+
+
+def get_sample_annotations_of_sample(sample, nusc):
+    output = []
+    sample_token = sample['token']
+    for my_annotation in nusc.sample_annotation:
+        if my_annotation['sample_token'] == sample_token:
+            output.append(my_annotation)
+    return output
+
+
+def get_vehicles_from_sample_array(sample_annotations):
+    output = []
+    for my_annotation in sample_annotations:
+        category_name = my_annotation['category_name']
+        category_name = category_name.split(".") 
+        if category_name[0] == 'vehicle':
+            output.append(my_annotation)
+    return output
