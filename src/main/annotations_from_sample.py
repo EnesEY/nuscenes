@@ -14,7 +14,7 @@ import sample_annotation_utils as utils
 import visualize
 
 
-class LoadSampleAnnotation2:
+class LoadSampleAnnotationsFromSamples:
 
     def __init__(self):
         self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
@@ -56,11 +56,10 @@ class LoadSampleAnnotation2:
                 nearestLane = utils.get_closest_lane_of_annotaion(vehicle, nusc_map)
                 if nearestLane == '':
                     vehicle['hasInstanceInFront'] = ''
+                    self._update_in_database(vehicle)
                     continue
 
                 self._load_has_instance_in_front(vehicle, sample_annotations, nearestLane, nusc_map, parameters.in_front_sample_rate, parameters.in_front_point_radius, parameters.in_front_distance)
-                self._load_is_on_stop_line(vehicle, nusc_map, nusc_map_name)
-                self._load_is_ego_vehicle(vehicle)
                 self._update_in_database(vehicle)
 
 
@@ -95,43 +94,10 @@ class LoadSampleAnnotation2:
         vehicle['hasInstanceInFront'] = hasInstanceInFront     
 
 
-    # loading of isOnStopLine
-    def _load_is_on_stop_line(self, vehicle, nusc_map, nusc_map_name):
-        isOnStopLine = False
-        
-        if nusc_map_name == 'singapore-queenstown':
-            vehicle['isOnStopLine'] = ''
-            return
-        x = vehicle['translation'][0]
-        y = vehicle['translation'][1]
-        layers = nusc_map.layers_on_point(x, y)
-
-        if len(layers['stop_line']) > 0:
-            isOnStopLine = True
-
-        vehicle['isOnStopLine'] = isOnStopLine           
-
-
-    # loading of isEgoVehicle
-    def _load_is_ego_vehicle(self, vehicle):
-        isEgoVehicle = False
-        
-        category_name = vehicle['category_name']
-        category_name = category_name.split(".") 
-        if category_name[0] == 'vehicle' and category_name[1] =='ego':
-            isEgoVehicle = True
-
-        vehicle['isEgoVehicle'] = isEgoVehicle      
-
-
     # database loading
     def _update_in_database(self, vehicle):
         query = {"token": vehicle['token']}
-        newValue = {"$set": {
-            "hasInstanceInFront": vehicle['hasInstanceInFront'],
-            "isOnStopLine": vehicle['isOnStopLine'],
-            "isEgoVehicle": vehicle['isEgoVehicle'],
-        }}
+        newValue = {"$set": {"hasInstanceInFront": vehicle['hasInstanceInFront'],}}
         self.db.sample_annotations.update_one(query, newValue)
 
 
@@ -146,5 +112,4 @@ class LoadSampleAnnotation2:
         if map_name == 'boston-seaport':
             return self.nusc_map_boston_seaport
 
-
-myInstance = LoadSampleAnnotation2()
+# myInstance = LoadSampleAnnotationsFromSamples()

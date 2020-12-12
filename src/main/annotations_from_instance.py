@@ -16,7 +16,7 @@ import visualize
 """
 All methods start from instance basis and load sample_annotations from there
 """
-class LoadSampleAnnotation:
+class LoadSampleAnnotationsFromInstance:
 
     def __init__(self):
         self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
@@ -52,7 +52,7 @@ class LoadSampleAnnotation:
     def _filter_unnecessary_instances(self):
         instances = []
         for instance in self.nusc.instance:
-            if utils.get_vehicle_and_not_ego_vehicle(instance, self.nusc) == True:
+            if utils.get_is_vehicle(instance, self.nusc) == True:
                 instances.append(instance)
         self.nusc.instance = instances
 
@@ -114,19 +114,80 @@ class LoadSampleAnnotation:
             nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
             nusc_map = self._get_map_of_annotation(nusc_map_name)
             for annotation in sample_annotations:
+                self._load_is_on_stop_line(annotation, nusc_map, nusc_map_name)
+                self._load_is_on_parking_area(annotation, nusc_map, nusc_map_name)
+                self._load_is_ego_vehicle(annotation)
+
                 road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map)
+                if road_segment == '':
+                    annotation['onIntersection'] = ''
+                    annotation['distanceToLeftBoundary'] = ''
+                    annotation['distanceToRightBoundary'] = ''
+                    continue
+
                 self._load_on_intersection(annotation, road_segment)
-                self._load_distance_to_boundaries(annotation, nusc_map, road_segment, 50)
+
+                nearestLane = utils.get_closest_lane_of_annotaion(annotation, nusc_map)
+                if nearestLane == '':
+                    annotation['distanceToLeftBoundary'] = ''
+                    annotation['distanceToRightBoundary'] = ''
+                    continue
+
+                self._load_distance_to_boundaries(annotation, nusc_map, road_segment, parameters.distance_to_boundaries_sampling_rate, nearestLane)
+
+
+    # loading of isOnStopLine
+    def _load_is_on_stop_line(self, vehicle, nusc_map, nusc_map_name):
+        isOnStopLine = False
+        
+        if nusc_map_name == 'singapore-queenstown':
+            vehicle['isOnStopLine'] = ''
+            return
+        x = vehicle['translation'][0]
+        y = vehicle['translation'][1]
+        layers = nusc_map.layers_on_point(x, y)
+
+        if 'stop_line' in layers:
+            isOnStopLine = True
+
+        vehicle['isOnStopLine'] = isOnStopLine     
+
+
+    # loading of isOnStopLine
+    def _load_is_on_parking_area(self, vehicle, nusc_map, nusc_map_name):
+        isOnCarparkArea  = False
+        
+        if nusc_map_name == 'singapore-queenstown':
+            vehicle['isOnCarparkArea'] = ''
+            return
+        x = vehicle['translation'][0]
+        y = vehicle['translation'][1]
+        layers = nusc_map.layers_on_point(x, y)
+
+        if 'carpark_area ' in layers:
+            isOnCarparkArea = True
+
+        vehicle['isOnCarparkArea'] = isOnCarparkArea  
+
+
+    # loading of isEgoVehicle
+    def _load_is_ego_vehicle(self, vehicle):
+        isEgoVehicle = False
+        
+        category_name = vehicle['category_name']
+        category_name = category_name.split(".") 
+        if category_name[0] == 'vehicle' and category_name[1] =='ego':
+            isEgoVehicle = True
+
+        vehicle['isEgoVehicle'] = isEgoVehicle    
 
 
     def _load_on_intersection(self, annotation, road_segment):
-        onIntersection = ''
-        if road_segment != '':
-            onIntersection = road_segment['is_intersection']
+        onIntersection = road_segment['is_intersection']
         annotation['onIntersection'] = onIntersection
 
 
-    def _load_distance_to_boundaries(self, annotation, nusc_map, road_segment, sampling_rate):
+    def _load_distance_to_boundaries(self, annotation, nusc_map, road_segment, sampling_rate, nearestLane):
         distance_to_left_boundary = ''
         distance_to_right_boundary = ''
 
@@ -134,51 +195,45 @@ class LoadSampleAnnotation:
         nusc_map.non_geometric_line_layers = []
         nusc_map.non_geometric_layers = ['drivable_area', 'road_segment', 'lane']
 
-        skip = False
-        if road_segment == '' or road_segment['is_intersection'] == True:
-            skip = True
-        
-        nearestLane = utils.get_closest_lane_of_annotaion(annotation, nusc_map)
-        if nearestLane == '':
-            skip = True
 
-        if skip != True:
-            x_center = annotation['translation'][0]
-            y_center = annotation['translation'][1]
+        x_center = annotation['translation'][0]
+        y_center = annotation['translation'][1]
 
-            # get direction of x and y of the nearest lane
-            [delta_x_lane, delta_y_lane] = utils.get_delta_x_and_delta_y_of_lane(annotation, nearestLane)
-            [orthogonal_delta_x_lane , orthogonal_delta_y_lane] = [delta_y_lane, (-1)*delta_x_lane]
-            road_segment_nodes = utils.get_nodes_of_road_segment(road_segment, nusc_map)
-            [same_direction_nodes, opposite_direction_nodes] = utils.get_opposite_and_same_direction_of_node_array(road_segment_nodes, delta_x_lane, delta_y_lane)
+        # get direction of x and y of the nearest lane
+        [delta_x_lane, delta_y_lane] = utils.get_delta_x_and_delta_y_of_lane(annotation, nearestLane)
+        [orthogonal_delta_x_lane , orthogonal_delta_y_lane] = [delta_y_lane, (-1)*delta_x_lane]
+        road_segment_nodes = utils.get_nodes_of_road_segment(road_segment, nusc_map)
+        [same_direction_nodes, opposite_direction_nodes] = utils.get_opposite_and_same_direction_of_node_array(road_segment_nodes, delta_x_lane, delta_y_lane)
                     
-            # Get average point of both lanes
-            [average_x_same_direction, average_y_same_direction] = utils.get_average_point_of_node_array(same_direction_nodes)
-            [average_x_opposite_direction, average_y_opposite_direction] = utils.get_average_point_of_node_array(opposite_direction_nodes)
+        # Get average point of both lanes
+        [average_x_same_direction, average_y_same_direction] = utils.get_average_point_of_node_array(same_direction_nodes)
+        [average_x_opposite_direction, average_y_opposite_direction] = utils.get_average_point_of_node_array(opposite_direction_nodes)
 
-            isLeftBoundaryValid = True
-            if average_x_opposite_direction == 0 or average_y_opposite_direction == 0:
-                isLeftBoundaryValid = False
+        isLeftBoundaryValid = True
+        if average_x_opposite_direction == 0 or average_y_opposite_direction == 0:
+            isLeftBoundaryValid = False
                     
-            isRightBoundaryValid = True
-            if average_x_same_direction == 0 or average_y_same_direction == 0:
-                isRightBoundaryValid = False
+        isRightBoundaryValid = True
+        if average_x_same_direction == 0 or average_y_same_direction == 0:
+            isRightBoundaryValid = False
 
-            if isLeftBoundaryValid == True:
-                start_point_left_lane = [x_center, y_center]
-                end_point_left_lane =  [x_center + ((-1) * orthogonal_delta_x_lane) , y_center + ((-1) * orthogonal_delta_y_lane)]
-                lane_to_left_boundary = utils.interpolate(start_point_left_lane[0], start_point_left_lane[1], end_point_left_lane[0], end_point_left_lane[1], sampling_rate)
-                closest_point_of_left_lane_to_opposite_average_point = utils.get_nearest_node_of_node_array_to_point(lane_to_left_boundary, average_x_opposite_direction, average_y_opposite_direction)
-                distance_to_left_boundary = utils.get_distance_between_two_points(closest_point_of_left_lane_to_opposite_average_point['x'],closest_point_of_left_lane_to_opposite_average_point['y'],x_center, y_center)
+        if isLeftBoundaryValid == True:
+            start_point_left_lane = [x_center, y_center]
+            end_point_left_lane =  [x_center + ((-1) * orthogonal_delta_x_lane) , y_center + ((-1) * orthogonal_delta_y_lane)]
+            lane_to_left_boundary = utils.interpolate(start_point_left_lane[0], start_point_left_lane[1], end_point_left_lane[0], end_point_left_lane[1], sampling_rate)
+            closest_point_of_left_lane_to_opposite_average_point = utils.get_nearest_node_of_node_array_to_point(lane_to_left_boundary, average_x_opposite_direction, average_y_opposite_direction)
+            distance_to_left_boundary = utils.get_distance_between_two_points(closest_point_of_left_lane_to_opposite_average_point['x'],closest_point_of_left_lane_to_opposite_average_point['y'],x_center, y_center)
 
-            if isRightBoundaryValid == True:
-                start_point_right_lane = [x_center, y_center] 
-                end_point_right_lane = [x_center + orthogonal_delta_x_lane , y_center + orthogonal_delta_y_lane]
-                lane_to_right_boundary = utils.interpolate(start_point_right_lane[0], start_point_right_lane[1], end_point_right_lane[0], end_point_right_lane[1], sampling_rate)
-                closest_point_of_right_lane_to_same_average_point = utils.get_nearest_node_of_node_array_to_point(lane_to_right_boundary, average_x_same_direction, average_y_same_direction)
-                distance_to_right_boundary = utils.get_distance_between_two_points(closest_point_of_right_lane_to_same_average_point['x'],closest_point_of_right_lane_to_same_average_point['y'],x_center, y_center)
+        if isRightBoundaryValid == True:
+            start_point_right_lane = [x_center, y_center] 
+            end_point_right_lane = [x_center + orthogonal_delta_x_lane , y_center + orthogonal_delta_y_lane]
+            lane_to_right_boundary = utils.interpolate(start_point_right_lane[0], start_point_right_lane[1], end_point_right_lane[0], end_point_right_lane[1], sampling_rate)
+            closest_point_of_right_lane_to_same_average_point = utils.get_nearest_node_of_node_array_to_point(lane_to_right_boundary, average_x_same_direction, average_y_same_direction)
+            distance_to_right_boundary = utils.get_distance_between_two_points(closest_point_of_right_lane_to_same_average_point['x'],closest_point_of_right_lane_to_same_average_point['y'],x_center, y_center)
+
         annotation['distanceToLeftBoundary'] = distance_to_left_boundary
-        annotation['distanceToRightBoundary'] = distance_to_right_boundary
+        annotation['distanceToRightBoundary'] = distance_to_right_boundary      
+
 
     # database loading
     def _load_in_database(self, startIndex, endIndex):
@@ -198,5 +253,4 @@ class LoadSampleAnnotation:
         if map_name == 'boston-seaport':
             return self.nusc_map_boston_seaport
 
-
-myInstance = LoadSampleAnnotation()
+# myInstance = LoadSampleAnnotationsFromInstance()

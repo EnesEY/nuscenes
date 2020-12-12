@@ -39,15 +39,14 @@ def get_sample_annotations_of_instance(instance, nusc):
     return output
 
 
-def get_vehicle_and_not_ego_vehicle(instance, nusc):
+def get_is_vehicle(instance, nusc):
     first_annotation_token = instance['first_annotation_token']
     annotation = nusc.get('sample_annotation', first_annotation_token)
     category_name = annotation['category_name']
     category_name = category_name.split(".") 
     
     if category_name[0] == 'vehicle':
-        if category_name[1] != 'ego':
-            return True
+        return True
     else:
         return False
 
