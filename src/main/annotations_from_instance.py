@@ -69,6 +69,7 @@ class LoadSampleAnnotationsFromInstance:
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
             self._load_moving_state(sample_annotations)
             self._load_moved_before(sample_annotations)
+            self._load_will_move(sample_annotations)
             self._load_time_not_moved(sample_annotations)
             self._load_vehicle_volume(sample_annotations)
 
@@ -88,6 +89,15 @@ class LoadSampleAnnotationsFromInstance:
             if movedBefore == False and annotation['movingState'] == True:
                 movedBefore = True
             annotation['movedBefore'] = movedBefore
+
+
+    def _load_will_move(self, sample_annotations):
+        willMove = False
+        lastAnnotation = sample_annotations[len(sample_annotations)-1]
+        if lastAnnotation['movedBefore'] == True:
+            willMove = True
+        for annotation in sample_annotations:
+            annotation['willMove'] = willMove
 
 
     def _load_time_not_moved(self, sample_annotations):
