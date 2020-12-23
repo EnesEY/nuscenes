@@ -47,9 +47,16 @@ import annotations_from_sample
 #     db.sensor.insert_many(nusc.sensor)
 #     print('loaded sensor complete')
 
+def removeGlitches():
+    client=MongoClient('mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test')
+    db = client.nuscenes
+    query = {"hasInstanceInFront":{'$exists': 0}}
+    newValue = {"$set": {"hasInstanceInFront": ''}}
+    db.sample_annotations.update_many(query, newValue)
 
 def loadDatabase():
     annotations_from_instance.LoadSampleAnnotationsFromInstance()
     annotations_from_sample.LoadSampleAnnotationsFromSamples()
+    removeGlitches()
 
 loadDatabase()

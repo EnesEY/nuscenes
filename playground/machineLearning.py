@@ -27,3 +27,9 @@ model.fit(train_images, train_labels, epochs=10)
 test_loss, test_acc = model.evaluate(test_images, test_labels)
 
 print('tested acc:', test_acc)
+
+
+
+# split in training and test (80 , 20)
+
+# 
