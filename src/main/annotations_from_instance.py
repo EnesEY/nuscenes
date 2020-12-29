@@ -76,6 +76,20 @@ class LoadSampleAnnotationsFromInstance:
 
     def _load_moving_state(self, sample_annotations):
         for annotation in sample_annotations:
+            if annotation['attribute_tokens'] == '' or annotation['attribute_tokens'] == []:
+                velocities = list(self.nusc.box_velocity(annotation['token']))
+                moving = False
+                if abs(np.average(velocities)) > parameters.moving_treshold:
+                    moving = True
+                annotation['movingState'] = moving
+                continue
+            else:
+                if annotation['attribute_tokens'][0] == "c3246a1e22a14fcb878aa61e69ae3329" or annotation['attribute_tokens'][0] == "58aa28b1c2a54dc88e169808c07331e3":
+                    annotation['movingState'] = False
+                    continue
+                if annotation['attribute_tokens'][0] == "cb5118da1ab342aa947717dc53544259":
+                    annotation['movingState'] = True
+                    continue
             velocities = list(self.nusc.box_velocity(annotation['token']))
             moving = False
             if abs(np.average(velocities)) > parameters.moving_treshold:
