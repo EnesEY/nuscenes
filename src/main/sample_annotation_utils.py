@@ -62,10 +62,9 @@ def get_map_name_of_annotation(annotation, nusc):
     return map_name
 
 
-def get_road_segment_of_annotation(annotation, nusc_map):
+def get_road_segment_of_annotation(annotation, nusc_map, layers):
     output = ''
     layer_type = 'road_segment'
-    layers = nusc_map.layers_on_point(annotation['translation'][0], annotation['translation'][1])
     if layers[layer_type] == '':
         return output
 
@@ -87,7 +86,7 @@ def get_closest_lane_of_annotaion(annotation, nusc_map):
     if closest_lane_token == '':
         return output
 
-    output = nusc_map.get_lane(closest_lane_token)
+    output = nusc_map.get_arcline_path(closest_lane_token)
 
     return output
 

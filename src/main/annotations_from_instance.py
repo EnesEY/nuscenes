@@ -74,6 +74,15 @@ class LoadSampleAnnotationsFromInstance:
             self._load_vehicle_volume(sample_annotations)
 
 
+    # def _load_moving_state(self, sample_annotations):
+    #     for annotation in sample_annotations:
+    #         velocities = list(self.nusc.box_velocity(annotation['token']))
+    #         moving = False
+    #         if abs(np.average(velocities)) > parameters.moving_treshold:
+    #             moving = True
+    #         annotation['movingState'] = moving           
+
+
     def _load_moving_state(self, sample_annotations):
         for annotation in sample_annotations:
             if annotation['attribute_tokens'] == '' or annotation['attribute_tokens'] == []:
@@ -138,11 +147,14 @@ class LoadSampleAnnotationsFromInstance:
             nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
             nusc_map = self._get_map_of_annotation(nusc_map_name)
             for annotation in sample_annotations:
-                self._load_is_on_stop_line(annotation, nusc_map, nusc_map_name)
-                self._load_is_on_parking_area(annotation, nusc_map, nusc_map_name)
+                x = annotation['translation'][0]
+                y = annotation['translation'][1]
+                layers = nusc_map.layers_on_point(x, y)
+                self._load_is_on_stop_line(annotation, layers, nusc_map_name)
+                self._load_is_on_parking_area(annotation, layers, nusc_map_name)
                 self._load_is_ego_vehicle(annotation)
 
-                road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map)
+                road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map, layers)
                 if road_segment == '':
                     annotation['onIntersection'] = ''
                     annotation['distanceToLeftBoundary'] = ''
@@ -152,24 +164,21 @@ class LoadSampleAnnotationsFromInstance:
                 self._load_on_intersection(annotation, road_segment)
 
                 nearestLane = utils.get_closest_lane_of_annotaion(annotation, nusc_map)
-                if nearestLane == '':
+                if nearestLane == '' or annotation['onIntersection'] == True:
                     annotation['distanceToLeftBoundary'] = ''
                     annotation['distanceToRightBoundary'] = ''
                     continue
 
-                self._load_distance_to_boundaries(annotation, nusc_map, road_segment, parameters.distance_to_boundaries_sampling_rate, nearestLane)
+                self._load_distance_to_boundaries(annotation, nusc_map, road_segment, nearestLane)
 
 
     # loading of isOnStopLine
-    def _load_is_on_stop_line(self, vehicle, nusc_map, nusc_map_name):
+    def _load_is_on_stop_line(self, vehicle, layers, nusc_map_name):
         isOnStopLine = False
         
         if nusc_map_name == 'singapore-queenstown':
             vehicle['isOnStopLine'] = ''
             return
-        x = vehicle['translation'][0]
-        y = vehicle['translation'][1]
-        layers = nusc_map.layers_on_point(x, y)
 
         if 'stop_line' in layers:
             isOnStopLine = True
@@ -178,17 +187,14 @@ class LoadSampleAnnotationsFromInstance:
 
 
     # loading of isOnStopLine
-    def _load_is_on_parking_area(self, vehicle, nusc_map, nusc_map_name):
+    def _load_is_on_parking_area(self, vehicle, layers, nusc_map_name):
         isOnCarparkArea  = False
         
         if nusc_map_name == 'singapore-queenstown':
             vehicle['isOnCarparkArea'] = ''
             return
-        x = vehicle['translation'][0]
-        y = vehicle['translation'][1]
-        layers = nusc_map.layers_on_point(x, y)
 
-        if 'carpark_area ' in layers:
+        if 'carpark_area' in layers:
             isOnCarparkArea = True
 
         vehicle['isOnCarparkArea'] = isOnCarparkArea  
@@ -211,14 +217,14 @@ class LoadSampleAnnotationsFromInstance:
         annotation['onIntersection'] = onIntersection
 
 
-    def _load_distance_to_boundaries(self, annotation, nusc_map, road_segment, sampling_rate, nearestLane):
+    def _load_distance_to_boundaries(self, annotation, nusc_map, road_segment, nearestLane):
         distance_to_left_boundary = ''
         distance_to_right_boundary = ''
 
+        # just for performance improvement
         nusc_map.non_geometric_polygon_layers = ['drivable_area', 'road_segment', 'lane']
         nusc_map.non_geometric_line_layers = []
         nusc_map.non_geometric_layers = ['drivable_area', 'road_segment', 'lane']
-
 
         x_center = annotation['translation'][0]
         y_center = annotation['translation'][1]
@@ -229,6 +235,8 @@ class LoadSampleAnnotationsFromInstance:
         road_segment_nodes = utils.get_nodes_of_road_segment(road_segment, nusc_map)
         [same_direction_nodes, opposite_direction_nodes] = utils.get_opposite_and_same_direction_of_node_array(road_segment_nodes, delta_x_lane, delta_y_lane)
                     
+        sampling_rate = round(math.sqrt(pow(delta_x_lane, 2) + pow(delta_y_lane, 2)))*2
+
         # Get average point of both lanes
         [average_x_same_direction, average_y_same_direction] = utils.get_average_point_of_node_array(same_direction_nodes)
         [average_x_opposite_direction, average_y_opposite_direction] = utils.get_average_point_of_node_array(opposite_direction_nodes)
