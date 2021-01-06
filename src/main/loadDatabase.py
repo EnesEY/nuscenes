@@ -7,8 +7,7 @@ from nuscenes.map_expansion import arcline_path_utils
 import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
-import annotations_from_instance
-import annotations_from_sample
+import load_annotations
 
 def loadDatabase():
     nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
@@ -26,8 +25,12 @@ def loadDatabase():
     #load ego_pose
     db.ego_pose.insert_many(nusc.ego_pose)
     print('loaded ego_pose complete')
-    #load sample_annotation
+    #load sample_annotation (unmodified)
     db.sample_annotation_unmodified.insert_many(nusc.sample_annotation)
+    print('loaded unmodified sample annotations')
+    #load sample_annotation (unmodified)
+    load_annotations.load_annotations_in_database()
+    print('loaded modified sample annotations')
     #load attribute
     db.attribute.insert_many(nusc.attribute)
     print('loaded attribute complete')
@@ -50,9 +53,4 @@ def loadDatabase():
     db.sensor.insert_many(nusc.sensor)
     print('loaded sensor complete')
 
-
-def loadDatabase2():
-    annotations_from_instance.LoadSampleAnnotationsFromInstance()
-    annotations_from_sample.LoadSampleAnnotationsFromSamples()
-
-loadDatabase2()
+loadDatabase()
