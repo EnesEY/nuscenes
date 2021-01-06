@@ -11,7 +11,6 @@ import numpy as np
 import math
 import sample_annotation_parameters as parameters
 import sample_annotation_utils as utils
-import visualize
 
 """
 All methods start from instance basis and load sample_annotations from there

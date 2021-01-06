@@ -11,7 +11,6 @@ import numpy as np
 import math
 import sample_annotation_parameters as parameters
 import sample_annotation_utils as utils
-import visualize
 
 """
 All methods start from sample basis and load sample_annotations from there
@@ -29,6 +28,7 @@ class LoadSampleAnnotationsFromSamples:
         self.nusc_map_boston_seaport = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='boston-seaport') 
 
         print('started loading annotaions')
+
         self.processes = []
         self.sample_process_ranges = utils.split_processes(self.nusc.sample)
 
@@ -57,7 +57,7 @@ class LoadSampleAnnotationsFromSamples:
             for vehicle in vehicles_in_sample:
                 nearestLane = utils.get_closest_lane_of_annotaion(vehicle, nusc_map)
                 if nearestLane == '':
-                    vehicle['hasInstanceInFront'] = ''
+                    vehicle['has-instasnce-in-front'] = ''
                     self._update_in_database(vehicle)
                     continue
 
@@ -66,7 +66,7 @@ class LoadSampleAnnotationsFromSamples:
 
 
     # loading of hasInstanceInFront
-    def _load_has_instance_in_front(self, vehicle, sample_annotations, nearestLane, nusc_map, sample_rate, radius, distance):
+    def _load_has_instance_in_front(self, vehicle, sample_annotations, nearestLane, nusc_map, sample_rate, radius, capture_distance):
         hasInstanceInFront = False
         [delta_x_lane, delta_y_lane] = utils.get_delta_x_and_delta_y_of_lane(vehicle, nearestLane)
 
@@ -77,8 +77,8 @@ class LoadSampleAnnotationsFromSamples:
 
         distance = utils.get_distance_between_two_points(start_x, start_y, end_x, end_y)
 
-        end_x = start_x + ((delta_x_lane/distance) * distance)
-        end_y = start_y + ((delta_y_lane/distance) * distance)
+        end_x = start_x + ((delta_x_lane/distance) * capture_distance)
+        end_y = start_y + ((delta_y_lane/distance) * capture_distance)
 
         current_vector = utils.interpolate(start_x, start_y, end_x, end_y, sample_rate)
 
@@ -93,13 +93,13 @@ class LoadSampleAnnotationsFromSamples:
                 if abs(distance2) < radius and annotation['token'] != vehicle['token']:
                     hasInstanceInFront = True
 
-        vehicle['hasInstanceInFront'] = hasInstanceInFront     
+        vehicle['has-instasnce-in-front'] = hasInstanceInFront     
 
 
     # database loading
     def _update_in_database(self, vehicle):
         query = {"token": vehicle['token']}
-        newValue = {"$set": {"hasInstanceInFront": vehicle['hasInstanceInFront'],}}
+        newValue = {"$set": {"has-instasnce-in-front": vehicle['has-instasnce-in-front'],}}
         self.db.sample_annotations.update_one(query, newValue)
 
 

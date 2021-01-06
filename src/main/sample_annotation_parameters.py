@@ -5,6 +5,6 @@ distanceMargin = 10
 
 distance_to_boundaries_sampling_rate = 50
 
-in_front_distance = 10
+in_front_distance = 13
 in_front_sample_rate = 10
 in_front_point_radius = 2

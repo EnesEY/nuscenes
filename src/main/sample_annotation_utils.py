@@ -2,8 +2,6 @@ import math
 import os
 import numpy as np
 
-
-
 def split_processes(arrayToSplit):
     start_and_end_of_processes = []
     step_length = math.floor(len(arrayToSplit)/os.cpu_count())
