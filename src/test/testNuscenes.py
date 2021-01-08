@@ -5,8 +5,6 @@ from nuscenes.map_expansion.map_api import NuScenesMap
 from nuscenes.map_expansion import arcline_path_utils
 from nuscenes.map_expansion.bitmap import BitMap
 
-import annotations_from_instance
-import annotations_from_sample
 import matplotlib.pyplot as plt
 import tqdm
 import numpy as np

@@ -1,6 +1,8 @@
 import math
 import os
 import numpy as np
+import load_annotations
+
 
 def split_processes(arrayToSplit):
     start_and_end_of_processes = []
@@ -183,3 +185,54 @@ def get_vehicles_from_sample_array(sample_annotations):
         if category_name[0] == 'vehicle':
             output.append(my_annotation)
     return output
+
+
+def empty_value_exists(db, field_name):
+    temp_value = db.features.find_one({field_name: { '$exists': False }})
+    if temp_value == None:
+        return 0
+    else:
+        return 1
+
+
+def load_meta_data_and_empty_fields(db, field_name):
+    value = {}
+    empty_field_exists = (empty_value_exists(db, field_name))
+    if empty_field_exists == 1:
+        query = {field_name: { '$exists': False }}
+        newValue = {"$set": {field_name: -1,}}
+        db.features.update_many(query, newValue) 
+
+    value['maximum'] = (db.features.find_one({field_name: {"$exists": True}}, sort=[(field_name, -1)])[field_name])
+    value['minimum'] = (db.features.find_one({field_name: {"$exists": True}}, sort=[(field_name, 1)])[field_name])
+    return value
+
+
+# Util methods for classifiers
+def preprocess(features, feature_metadata, feature_name):
+    max = feature_metadata[feature_name]['maximum']
+    min = feature_metadata[feature_name]['minimum']
+
+    for feature in features:
+        feature[feature_name] = (feature[feature_name] - min) / (max - min)
+
+
+def seperate_data_from_labels(data):
+    # split data in information and labels
+    information_array = []
+    feature_array = []
+    for point in data:
+        temp_info = []
+        temp_lab = []
+        for info in load_annotations.information:
+            temp_info.append(point[info])
+        for lab in load_annotations.labels:
+            temp_lab.append(point[lab])
+        information_array.append(temp_info)
+        feature_array.append(temp_lab)
+    
+    # put data in numpy arrays
+    inf_np_arr = np.array(information_array)
+    feat_np_arr = np.array(feature_array)
+
+    return inf_np_arr, feat_np_arr

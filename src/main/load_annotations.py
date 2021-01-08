@@ -9,23 +9,31 @@ import os
 import numpy as np
 import math
 import sample_annotation_parameters as parameters
-import sample_annotation_utils as utils
+import utils as utils
 
 
 # this method loads sample_annotations into the mongodb database with all the features that this project added
-def load_annotations_in_database():
-    LoadSampleAnnotationsFromInstance()
-    LoadSampleAnnotationsFromSamples()
+def load_features(dbPath):
+    LoadFeaturesFromInstance(dbPath)
+    LoadFeaturesFromSamples(dbPath)
 
+features = ["moving-state", "moved-before",
+            "will-move", "time-not-moved", "vehicle-volume", "is-on-stop-line", "is-on-car-park-area","is-ego-vehicle",
+            "on-intersection", "distance-to-left-boundary", "distance-to-right-boundary","has-instance-in-front"]
+
+information = ["moving-state", "moved-before", "time-not-moved", "vehicle-volume", "is-on-stop-line", "is-on-car-park-area","is-ego-vehicle",
+            "on-intersection", "distance-to-left-boundary", "distance-to-right-boundary","has-instance-in-front"]
+
+labels = ["will-move"]
 
 """
 This class goes through every sample annotation of all instances to load sample_annotations
 """
-class LoadSampleAnnotationsFromInstance:
+class LoadFeaturesFromInstance:
 
-    def __init__(self):
+    def __init__(self, dbPath):
         self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
-        self.client=MongoClient('mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test')
+        self.client=MongoClient(dbPath)
         self.db = self.client.nuscenes
 
         self.nusc_map_singapore_onenorth = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-onenorth')
@@ -83,38 +91,38 @@ class LoadSampleAnnotationsFromInstance:
         for annotation in sample_annotations:
             if annotation['attribute_tokens'] == '' or annotation['attribute_tokens'] == []:
                 velocities = list(self.nusc.box_velocity(annotation['token']))
-                moving = False
+                moving = 0
                 if abs(np.average(velocities)) > parameters.moving_treshold:
-                    moving = True
+                    moving = 1
                 annotation['moving-state'] = moving
                 continue
             else:
                 if annotation['attribute_tokens'][0] == "c3246a1e22a14fcb878aa61e69ae3329" or annotation['attribute_tokens'][0] == "58aa28b1c2a54dc88e169808c07331e3":
-                    annotation['moving-state'] = False
+                    annotation['moving-state'] = 0
                     continue
                 if annotation['attribute_tokens'][0] == "cb5118da1ab342aa947717dc53544259":
-                    annotation['moving-state'] = True
+                    annotation['moving-state'] = 1
                     continue
             velocities = list(self.nusc.box_velocity(annotation['token']))
-            moving = False
+            moving = 0
             if abs(np.average(velocities)) > parameters.moving_treshold:
-                moving = True
+                moving = 1
             annotation['moving-state'] = moving
 
 
     def _load_moved_before(self, sample_annotations):
-        movedBefore = False
+        movedBefore = 0
         for annotation in sample_annotations:
-            if movedBefore == False and annotation['moving-state'] == True:
-                movedBefore = True
+            if movedBefore == 0 and annotation['moving-state'] == 1:
+                movedBefore = 1
             annotation['moved-before'] = movedBefore
 
 
     def _load_will_move(self, sample_annotations):
-        willMove = False
+        willMove = 0
         lastAnnotation = sample_annotations[len(sample_annotations)-1]
-        if lastAnnotation['moved-before'] == True:
-            willMove = True
+        if lastAnnotation['moved-before'] == 1:
+            willMove = 1
         for annotation in sample_annotations:
             annotation['will-move'] = willMove
 
@@ -122,9 +130,9 @@ class LoadSampleAnnotationsFromInstance:
     def _load_time_not_moved(self, sample_annotations):
         timeNotMoved = 0
         for annotation in sample_annotations:
-            if annotation['moving-state'] == True:
+            if annotation['moving-state'] == 1:
                 timeNotMoved = 0
-            if annotation['moving-state'] == False:
+            if annotation['moving-state'] == 0:
                 timeNotMoved += 1
             annotation['time-not-moved'] = timeNotMoved
 
@@ -141,6 +149,17 @@ class LoadSampleAnnotationsFromInstance:
         for index in tqdm(range(start_index, end_index), desc=f'instance map annotation progress of thread nr. {thread_number}:'):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
             nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
+
+            if nusc_map_name == 'singapore-queenstown':
+                for annotation in sample_annotations:
+                    annotation['is-on-stop-line'] = -1
+                    annotation['is-on-car-park-area'] = -1
+                    annotation['is-ego-vehicle'] = -1
+                    annotation['on-intersection'] = -1
+                    annotation['distance-to-left-boundary'] = -1
+                    annotation['distance-to-right-boundary'] = -1
+                continue
+
             nusc_map = self._get_map_of_annotation(nusc_map_name)
             for annotation in sample_annotations:
                 x = annotation['translation'][0]
@@ -152,17 +171,17 @@ class LoadSampleAnnotationsFromInstance:
 
                 road_segment = utils.get_road_segment_of_annotation(annotation, nusc_map, layers)
                 if road_segment == '':
-                    annotation['on-intersection'] = ''
-                    annotation['distance-to-left-boundary'] = ''
-                    annotation['distance-to-right-boundary'] = ''
+                    annotation['on-intersection'] = -1
+                    annotation['distance-to-left-boundary'] = -1
+                    annotation['distance-to-right-boundary'] = -1
                     continue
 
                 self._load_on_intersection(annotation, road_segment)
 
                 nearestLane = utils.get_closest_lane_of_annotaion(annotation, nusc_map)
-                if nearestLane == '' or annotation['on-intersection'] == True:
-                    annotation['distance-to-left-boundary'] = ''
-                    annotation['distance-to-right-boundary'] = ''
+                if nearestLane == '' or annotation['on-intersection'] == 1:
+                    annotation['distance-to-left-boundary'] = -1
+                    annotation['distance-to-right-boundary'] = -1
                     continue
 
                 self._load_distance_to_boundaries(annotation, nusc_map, road_segment, nearestLane)
@@ -170,52 +189,55 @@ class LoadSampleAnnotationsFromInstance:
 
     # loading of isOnStopLine
     def _load_is_on_stop_line(self, vehicle, layers, nusc_map_name):
-        isOnStopLine = False
+        isOnStopLine = 0
         
         if nusc_map_name == 'singapore-queenstown':
-            vehicle['is-on-stop-line'] = ''
+            vehicle['is-on-stop-line'] = -1
             return
 
         if 'stop_line' in layers:
-            isOnStopLine = True
+            isOnStopLine = 1
 
         vehicle['is-on-stop-line'] = isOnStopLine     
 
 
     # loading of isOnStopLine
     def _load_is_on_parking_area(self, vehicle, layers, nusc_map_name):
-        isOnCarparkArea  = False
+        isOnCarparkArea  = 0
         
         if nusc_map_name == 'singapore-queenstown':
-            vehicle['is-on-car-park-area'] = ''
+            vehicle['is-on-car-park-area'] = -1
             return
 
         if 'carpark_area' in layers:
-            isOnCarparkArea = True
+            isOnCarparkArea = 1
 
         vehicle['is-on-car-park-area'] = isOnCarparkArea  
 
 
     # loading of isEgoVehicle
     def _load_is_ego_vehicle(self, vehicle):
-        isEgoVehicle = False
+        isEgoVehicle = 0
         
         category_name = vehicle['category_name']
         category_name = category_name.split(".") 
         if category_name[0] == 'vehicle' and category_name[1] =='ego':
-            isEgoVehicle = True
+            isEgoVehicle = 1
 
         vehicle['is-ego-vehicle'] = isEgoVehicle    
 
 
     def _load_on_intersection(self, annotation, road_segment):
         onIntersection = road_segment['is_intersection']
-        annotation['on-intersection'] = onIntersection
+        if onIntersection == True:
+            annotation['on-intersection'] = 1
+        else:
+            annotation['on-intersection'] = 0
 
 
     def _load_distance_to_boundaries(self, annotation, nusc_map, road_segment, nearestLane):
-        distance_to_left_boundary = ''
-        distance_to_right_boundary = ''
+        distance_to_left_boundary = -1
+        distance_to_right_boundary = -1
 
         # just for performance improvement
         nusc_map.non_geometric_polygon_layers = ['drivable_area', 'road_segment', 'lane']
@@ -267,7 +289,27 @@ class LoadSampleAnnotationsFromInstance:
     def _load_in_database(self, startIndex, endIndex):
         for index in range(startIndex, endIndex):
             sample_annotations = utils.get_sample_annotations_of_instance(self.nusc.instance[index], self.nusc)
-            self.db.sample_annotations.insert_many(sample_annotations)
+            features = []
+            for annotation in sample_annotations:
+                feature = {
+                    "token": annotation['token'],
+                    "sample_token":annotation['sample_token'],
+                    "category_name": annotation['category_name'],
+                    "moving-state": annotation['moving-state'],
+                    "moved-before": annotation['moved-before'],
+                    "will-move": annotation['will-move'],
+                    "time-not-moved": annotation['time-not-moved'],
+                    "vehicle-volume":  annotation['vehicle-volume'],
+                    "is-on-stop-line": annotation['is-on-stop-line'],  
+                    "is-on-car-park-area": annotation['is-on-car-park-area'],
+                    "is-ego-vehicle":  annotation['is-ego-vehicle'],
+                    "on-intersection": annotation['on-intersection'],  
+                    "distance-to-left-boundary": annotation['distance-to-left-boundary'],
+                    "distance-to-right-boundary": annotation['distance-to-right-boundary'],
+                }
+                features.append(feature)
+
+            self.db.features.insert_many(features)
 
 
     # helper methods
@@ -287,11 +329,11 @@ class LoadSampleAnnotationsFromInstance:
 """
 These methods go through scenes and their samples and all the sample_annotations in the samples to load sample_annotations
 """
-class LoadSampleAnnotationsFromSamples:
+class LoadFeaturesFromSamples:
 
-    def __init__(self):
+    def __init__(self, dbPath):
         self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
-        self.client=MongoClient('mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test')
+        self.client=MongoClient(dbPath)
         self.db = self.client.nuscenes
 
         self.nusc_map_singapore_onenorth = NuScenesMap(dataroot='/data/sets/nuscenes', map_name='singapore-onenorth')
@@ -324,12 +366,18 @@ class LoadSampleAnnotationsFromSamples:
             sample_annotations = utils.get_sample_annotations_of_sample(sample, self.nusc)
             vehicles_in_sample = utils.get_vehicles_from_sample_array(sample_annotations)
             nusc_map_name = utils.get_map_name_of_annotation(sample_annotations[0], self.nusc)
+
+            if nusc_map_name == 'singapore-queenstown':
+                for vehicle in vehicles_in_sample:
+                    vehicle['has-instance-in-front'] = -1
+                continue
+
             nusc_map = self._get_map_of_annotation(nusc_map_name)
 
             for vehicle in vehicles_in_sample:
                 nearestLane = utils.get_closest_lane_of_annotaion(vehicle, nusc_map)
                 if nearestLane == '':
-                    vehicle['has-instasnce-in-front'] = ''
+                    vehicle['has-instance-in-front'] = -1
                     self._update_in_database(vehicle)
                     continue
 
@@ -339,7 +387,7 @@ class LoadSampleAnnotationsFromSamples:
 
     # loading of hasInstanceInFront
     def _load_has_instance_in_front(self, vehicle, sample_annotations, nearestLane, nusc_map, sample_rate, radius, capture_distance):
-        hasInstanceInFront = False
+        hasInstanceInFront = 0
         [delta_x_lane, delta_y_lane] = utils.get_delta_x_and_delta_y_of_lane(vehicle, nearestLane)
 
         start_x = vehicle['translation'][0]
@@ -363,16 +411,16 @@ class LoadSampleAnnotationsFromSamples:
                 node_y = node['y']
                 distance2 = utils.get_distance_between_two_points(node_x, node_y, current_x, current_y)
                 if abs(distance2) < radius and annotation['token'] != vehicle['token']:
-                    hasInstanceInFront = True
+                    hasInstanceInFront = 1
 
-        vehicle['has-instasnce-in-front'] = hasInstanceInFront     
+        vehicle['has-instance-in-front'] = hasInstanceInFront     
 
 
     # database loading
     def _update_in_database(self, vehicle):
         query = {"token": vehicle['token']}
-        newValue = {"$set": {"has-instasnce-in-front": vehicle['has-instasnce-in-front'],}}
-        self.db.sample_annotations.update_one(query, newValue)
+        newValue = {"$set": {"has-instance-in-front": vehicle['has-instance-in-front'],}}
+        self.db.features.update_one(query, newValue)
 
 
     # helper methods
