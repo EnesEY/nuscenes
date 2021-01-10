@@ -10,7 +10,7 @@ import numpy as np
 import load_annotations
 import utils_annotations as utils
 
-nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
+nusc = NuScenes(version='v1.0-trainval', dataroot='/data/sets/nuscenes', verbose=True)
 dbPath = 'mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test'
 client=MongoClient(dbPath)
 db = client.nuscenes
