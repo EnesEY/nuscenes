@@ -1,7 +1,7 @@
 from nuscenes.nuscenes import NuScenes
 from pymongo import MongoClient 
-from nuscenes.map_expansion.map_api import NuScenesMap
-from nuscenes.map_expansion import arcline_path_utils
+from map_api import NuScenesMap
+import arcline_path_utils
 from multiprocessing import Process
 from tqdm import tqdm
 
@@ -32,7 +32,7 @@ This class goes through every sample annotation of all instances to load sample_
 class LoadFeaturesFromInstance:
 
     def __init__(self, dbPath):
-        self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
+        self.nusc = NuScenes(version='v1.0-trainval', dataroot='/data/sets/nuscenes', verbose=True)
         self.client=MongoClient(dbPath)
         self.db = self.client.nuscenes
 
@@ -332,7 +332,7 @@ These methods go through scenes and their samples and all the sample_annotations
 class LoadFeaturesFromSamples:
 
     def __init__(self, dbPath):
-        self.nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
+        self.nusc = NuScenes(version='v1.0-trainval', dataroot='/data/sets/nuscenes', verbose=True)
         self.client=MongoClient(dbPath)
         self.db = self.client.nuscenes
 
