@@ -1,8 +1,15 @@
 import math
 import os
 import numpy as np
-import load_annotations
 
+features = ["moving-state", "moved-before",
+            "will-move", "time-not-moved", "vehicle-volume", "is-on-stop-line", "is-on-car-park-area","is-ego-vehicle",
+            "on-intersection", "distance-to-left-boundary", "distance-to-right-boundary","has-instance-in-front"]
+
+information = ["moving-state", "moved-before", "time-not-moved", "vehicle-volume", "is-on-stop-line", "is-on-car-park-area","is-ego-vehicle",
+            "on-intersection", "distance-to-left-boundary", "distance-to-right-boundary","has-instance-in-front"]
+
+labels = ["will-move"]
 
 def split_processes(arrayToSplit):
     start_and_end_of_processes = []
@@ -224,9 +231,9 @@ def seperate_data_from_labels(data):
     for point in data:
         temp_info = []
         temp_lab = []
-        for info in load_annotations.information:
+        for info in information:
             temp_info.append(point[info])
-        for lab in load_annotations.labels:
+        for lab in labels:
             temp_lab.append(point[lab])
         information_array.append(temp_info)
         feature_array.append(temp_lab)

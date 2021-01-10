@@ -1,6 +1,5 @@
 # What version of Python do you have?
 import sys
-
 import tensorflow.keras
 import pandas as pd
 import sklearn as sk

@@ -8,11 +8,10 @@ import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
 import load_annotations
-import utils as utils
+import utils_annotations as utils
 
-nusc = NuScenes(version='v1.0-trainval', dataroot='/data/sets/nuscenes', verbose=True)
+nusc = NuScenes(version='v1.0-mini', dataroot='/data/sets/nuscenes', verbose=True)
 dbPath = 'mongodb+srv://enesey:485f6483e3c8666b72fda603a7f87006b83549a54395f2504eb58935f35d00d9@nuscenescluster.jh1vw.mongodb.net/test'
-# dbPath = 'mongodb://localhost:27017/nuscenes'
 client=MongoClient(dbPath)
 db = client.nuscenes
 
@@ -66,17 +65,15 @@ def load_preprocessed_features():
     # load min, max and add empty rows as -1
     for field_name in load_annotations.features:
         value[field_name] = utils.load_meta_data_and_empty_fields(db, field_name)
-
+    
     # normalize data (put the data in ranges of 0 to 1)
     for feature_name in (load_annotations.features):
         utils.preprocess(features, value, feature_name)
     
+
     # insert in databse
     db.preprocessed_features.insert_many(features)
     print('load preprocessed features done')
-
-
-
 
 
 loadDatabase()
