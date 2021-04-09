@@ -1,3 +1,2 @@
-# Project to the Bachelor Thesis of Enes Yalldiz
-
-## usable to create a neural network that classifies motionless vehicles as either parked or stopped
+### Project to extract data out of the nuscenes database.
+### This data is used to create a classifier that distinguishes between parked and stopped vehicles.
